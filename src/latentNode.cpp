@@ -5,15 +5,18 @@
 //  Created by Farideh Fazayeli on 7/15/13.
 //
 //
-
+#define USE_FC_LEN_T
 #include "latentNode.h"
 #include <R.h>      // R functions
 #include <Rmath.h>  // R math
 #include <Rinternals.h>
 #include <R_ext/Linpack.h>
-#include <R_ext/Lapack.h>
 #include <R_ext/BLAS.h>
+#include <R_ext/Lapack.h>
 #include <R_ext/Utils.h>
+#ifndef FCONE
+# define FCONE
+#endif
 
 NodeLatent::NodeLatent(int num_child, int num_feat, int level)
     : num_parent_(0),
@@ -260,7 +263,7 @@ void NodeLatent::GibbsUpdate(NodeLatent*** v_tree, double sig_inv,
                     &num_observ_, &sig_inv, latent_trans.get(),
                     &num_latent_features_, latent_trans.get(),
                     &num_latent_features_, &numPrior, cov.get(),
-                    &num_latent_features_);
+                    &num_latent_features_ FCONE FCONE);
 
     for(int ii = 0; ii < num_latent_features_; ii++) {
         cov[ii*num_latent_features_+ii] =
@@ -271,10 +274,10 @@ void NodeLatent::GibbsUpdate(NodeLatent*** v_tree, double sig_inv,
     
     F77_NAME(dgemv)(ntrans, &num_latent_features_, &num_latent_features_, &one,
                     cov.get(), &num_latent_features_, mu.get(), &inc_one, &zero,
-                    mu_u.get(), &inc_one);
+                    mu_u.get(), &inc_one FCONE);
     
     F77_NAME(dpotrf)(lower, &num_latent_features_, cov.get(),
-                     &num_latent_features_, &info);
+                     &num_latent_features_, &info FCONE);
     
     mvrnorm(latent_factor_.get(), mu_u.get(), cov.get(), num_latent_features_,
             false);

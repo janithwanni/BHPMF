@@ -19,9 +19,9 @@ void mvrnorm(double *des, double *mu, double *cholCov, int dim, bool upper){
   
   //mult this vector by the lower triangle of the cholCov
   if(upper)
-    F77_NAME(dtrmv)("U", "T", "N", &dim, cholCov, &dim, des, &inc);
+    F77_NAME(dtrmv)("U", "T", "N", &dim, cholCov, &dim, des, &inc FCONE FCONE FCONE);
   else
-    F77_NAME(dtrmv)("L", "N", "N", &dim, cholCov, &dim, des, &inc);
+    F77_NAME(dtrmv)("L", "N", "N", &dim, cholCov, &dim, des, &inc FCONE FCONE FCONE);
   
   //add the mean to the result
   F77_NAME(daxpy)(&dim, &one, mu, &inc, des, &inc);
