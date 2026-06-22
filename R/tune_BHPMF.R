@@ -1,6 +1,15 @@
-TuneBhpmf <- function(X, hierarchy.info, prediction.level, used.num.hierarchy.levels,
-                      num.folds=10, num.samples=1000, burn=100, gaps=2, tmp.dir, verbose=FALSE) {
-  
+TuneBhpmf <- function(
+  X,
+  hierarchy.info,
+  prediction.level,
+  used.num.hierarchy.levels,
+  num.folds = 10,
+  num.samples = 1000,
+  burn = 100,
+  gaps = 2,
+  tmp.dir,
+  verbose = FALSE
+) {
   # Tune the BHPMF parameter, number of latent factors.
   #
   # Args:
@@ -27,21 +36,20 @@ TuneBhpmf <- function(X, hierarchy.info, prediction.level, used.num.hierarchy.le
   #		  preprocessing files saved in this directory, it helps to avoid running preprocessing
   #		  functions for the same	input.
   #		  WARNING: This directory should	be empty for the first time call on a new dataset.
-  #    verbose: if TRUE, progress of the sampler is printed to the screen. 
+  #    verbose: if TRUE, progress of the sampler is printed to the screen.
   #       Otherwise, nothing is printed to the screen. Default is FALSE.
   #
   # Returns:
   #   A list of the tuned number of latent factors paramter for BHMPF along with minimum RMSE.
-  
-  
+
   #    source("file_exists.R")
   #    source("preprocess_cv.R")
   #    source("utillity.R")
   #    dyn.load("../src/HPMF.so")
-  
+
   num.hierarchy.levels <- ncol(hierarchy.info)
   num.cols <- ncol(X)
-  
+
   # Check missing arguments
   if (missing(X)) {
     stop("Missing X!")
@@ -72,31 +80,40 @@ TuneBhpmf <- function(X, hierarchy.info, prediction.level, used.num.hierarchy.le
   } else if (!file.exists(tmp.dir)) {
     stop("tmp.dir: ", tmp.dir, "  does not exist")
   }
-  
-  if (!preprocess.flag) {   # tmp directory is provided by user
-    if (!CheckPreprocessFilesExist(tmp.dir, num.folds, used.num.hierarchy.levels, prediction.level)) { # return TRUE if files exists
+
+  if (!preprocess.flag) {
+    # tmp directory is provided by user
+    if (
+      !CheckPreprocessFilesExist(
+        tmp.dir,
+        num.folds,
+        used.num.hierarchy.levels,
+        prediction.level
+      )
+    ) {
+      # return TRUE if files exists
       preprocess.flag <- TRUE
     }
   }
-  
+
   if (preprocess.flag) {
     cat("preprocessing: \n")
     PreprocessCv(X, hierarchy.info, num.folds, tmp.dir, verbose)
   }
-  
+
   num.nodes.per.level <- NULL
-  load(paste(tmp.dir, "/processed_hierarchy_info.Rda", sep=""))
-  
+  load(paste(tmp.dir, "/processed_hierarchy_info.Rda", sep = ""))
+
   tmp.env <- new.env()
   min_rmse <- Inf
   save_file_flag <- 0
   out.whole.flag <- 0
-  num_latent_feats_set <- seq(5, num.cols+6, by=5);
+  num_latent_feats_set <- seq(5, num.cols + 6, by = 5)
   rmse_vec <- matrix(0, length(num_latent_feats_set), num.folds)
-  
-  for (ind in 1 : length(num_latent_feats_set)) {
-    for (fold in 1 : num.folds) {
-      num_latent_feats = num_latent_feats_set[ind];
+
+  for (ind in 1:length(num_latent_feats_set)) {
+    for (fold in 1:num.folds) {
+      num_latent_feats = num_latent_feats_set[ind]
       args <- list(
         "NumSamples" = as.integer(num.samples),
         "InputDir" = tmp.dir,
@@ -107,28 +124,37 @@ TuneBhpmf <- function(X, hierarchy.info, prediction.level, used.num.hierarchy.le
         "OutWholeFlag" = as.integer(out.whole.flag),
         "NumTraits" = as.integer(num.cols),
         "NumFeats" = as.integer(num_latent_feats),
-        "NumHierarchyLevel" = as.integer(num.hierarchy.levels-1),
+        "NumHierarchyLevel" = as.integer(num.hierarchy.levels - 1),
         "PredictLevel" = as.integer(prediction.level),
         "UsedNumHierarchyLevel" = as.integer(used.num.hierarchy.levels),
         "Verbose" = as.integer(verbose),
         "Env" = tmp.env
       )
-      
-      out <- .Call("DemoHPMF", args, "", "", num.nodes.per.level);
-      cat(out$RMSE);
+
+      out <- .Call(
+        "DemoHPMF",
+        args,
+        "",
+        "",
+        num.nodes.per.level,
+        package = "BHPMF"
+      )
+      cat(out$RMSE)
       cat("\n")
-      rmse_vec[ind, fold] = out$RMSE;	 
+      rmse_vec[ind, fold] = out$RMSE
     }
-    
-    avg_rmse = mean(rmse_vec[ind,]);
+
+    avg_rmse = mean(rmse_vec[ind, ])
     if (avg_rmse < min_rmse) {
-      min_rmse = avg_rmse;
+      min_rmse = avg_rmse
       best_num_latent_feats = num_latent_feats_set[ind]
     }
   }
-  
-  result <- list("min.rmse" = as.numeric(min_rmse),
-                 "best.number.latent.features" = as.integer(best_num_latent_feats)
+
+  result <- list(
+    "min.rmse" = as.numeric(min_rmse),
+    "best.number.latent.features" = as.integer(best_num_latent_feats)
   )
-  return(result);
+  return(result)
 }
+

@@ -1,8 +1,20 @@
-GapFilling <- function(X, hierarchy.info, prediction.level,
-                       used.num.hierarchy.levels, num.samples=1000, burn=100, gaps=2,
-                       num.latent.feats=10, tuning=FALSE, num.folds.tuning=10, tmp.dir,
-                       mean.gap.filled.output.path, std.gap.filled.output.path,
-                       rmse.plot.test.data=TRUE, verbose=FALSE) {
+GapFilling <- function(
+  X,
+  hierarchy.info,
+  prediction.level,
+  used.num.hierarchy.levels,
+  num.samples = 1000,
+  burn = 100,
+  gaps = 2,
+  num.latent.feats = 10,
+  tuning = FALSE,
+  num.folds.tuning = 10,
+  tmp.dir,
+  mean.gap.filled.output.path,
+  std.gap.filled.output.path,
+  rmse.plot.test.data = TRUE,
+  verbose = FALSE
+) {
   # This function calculate the average RMSE in cross validation.
   #
   # Args:
@@ -39,17 +51,17 @@ GapFilling <- function(X, hierarchy.info, prediction.level,
   #	  std.gap.filled.output.path: A file path for saving the std value of gap filled data.
   #	  	 In the same format as the input X.
   #	  rmse.plot.test.data: If TRUE, provide the rmse vs std plot for test data.
-  #   verbose: if TRUE, progress of the sampler is printed to the screen. 
+  #   verbose: if TRUE, progress of the sampler is printed to the screen.
   #       Otherwise, nothing is printed to the screen. Default is FALSE.
   #
   # Returns:
   #   If tuning is TRUE, returns a list of the tuned number of latent factors paramter
   #   for BHMPF along with minimum RMSE.
-  
+
   num.nodes.per.level <- NULL
   num.hierarchy.levels <- ncol(hierarchy.info)
   num.cols <- ncol(X)
-  
+
   # Check missing arguments
   if (missing(X)) {
     stop("Missing X!")
@@ -64,7 +76,7 @@ GapFilling <- function(X, hierarchy.info, prediction.level,
     stop("A file path for std.gap.filled.output.path should be provided.")
   }
   if (missing(used.num.hierarchy.levels)) {
-    used.num.hierarchy.levels <- num.hierarchy.levels-1
+    used.num.hierarchy.levels <- num.hierarchy.levels - 1
   }
   if (missing(prediction.level)) {
     prediction.level <- num.hierarchy.levels
@@ -86,27 +98,35 @@ GapFilling <- function(X, hierarchy.info, prediction.level,
   } else if (!file.exists(tmp.dir)) {
     stop("tmp.dir: ", tmp.dir, "  does not exist")
   }
-  
-  if (!preprocess.flag) {   # tmp directory is provided by user
-    if (!CheckPreprocessFilesExist(tmp.dir, 1, used.num.hierarchy.levels, prediction.level)) { 
+
+  if (!preprocess.flag) {
+    # tmp directory is provided by user
+    if (
+      !CheckPreprocessFilesExist(
+        tmp.dir,
+        1,
+        used.num.hierarchy.levels,
+        prediction.level
+      )
+    ) {
       # return TRUE if files exists
       preprocess.flag <- TRUE
     }
   }
-  
+
   if (verbose) {
-    cat("preprocess.flag: ",preprocess.flag, "\n")
+    cat("preprocess.flag: ", preprocess.flag, "\n")
   }
   num.folds <- 2
   if (preprocess.flag) {
     PreprocessCv(X, hierarchy.info, num.folds, tmp.dir, verbose)
-    tmp.tune.dir = paste(tmp.dir, "/fold1/Tunning", sep="")
+    tmp.tune.dir = paste(tmp.dir, "/fold1/Tunning", sep = "")
     cat(tmp.tune.dir, "\n")
     dir.create(tmp.tune.dir)
   }
-  
-  load(paste(tmp.dir, "/processed_hierarchy_info.Rda", sep=""))
-  
+
+  load(paste(tmp.dir, "/processed_hierarchy_info.Rda", sep = ""))
+
   #Tune the num.latent.feats parameter
   #By choosing the best parameter that minimize the
   #CV RMSE over training data in the first fold
@@ -116,68 +136,113 @@ GapFilling <- function(X, hierarchy.info, prediction.level,
       cat("tuning: ")
     }
     # find the X matrix for fold 1
-    file.name <- paste(tmp.dir, '/fold1/Ytrain', prediction.level, ".txt", sep = "")
-    Y.tune <- as.matrix(read.table(file.name, sep="\t", header=F))
-    X.tune <- matrix(data=NA, nrow=nrow(X), ncol=ncol(X))
+    file.name <- paste(
+      tmp.dir,
+      '/fold1/Ytrain',
+      prediction.level,
+      ".txt",
+      sep = ""
+    )
+    Y.tune <- as.matrix(read.table(file.name, sep = "\t", header = F))
+    X.tune <- matrix(data = NA, nrow = nrow(X), ncol = ncol(X))
     X.tune[cbind(Y.tune[, 1], Y.tune[, 2])] <- Y.tune[, 3]
     rm(Y.tune)
-    
-    tmp.tune.dir = paste(tmp.dir, "/fold1/Tunning", sep="")
-    
-    out.tuning <- TuneBhpmf(X.tune, hierarchy.info, prediction.level, used.num.hierarchy.levels,
-                     num.folds.tuning, num.samples, burn, gaps, tmp.tune.dir, verbose)
+
+    tmp.tune.dir = paste(tmp.dir, "/fold1/Tunning", sep = "")
+
+    out.tuning <- TuneBhpmf(
+      X.tune,
+      hierarchy.info,
+      prediction.level,
+      used.num.hierarchy.levels,
+      num.folds.tuning,
+      num.samples,
+      burn,
+      gaps,
+      tmp.tune.dir,
+      verbose
+    )
     rm(X.tune)
     num.latent.feats <- out.tuning$best.number.latent.features
   }
-  
+
   save.file.flag <- 0
   out.whole.flag <- 1
   fold <- 1
   tmp.env <- new.env()
-  args <- list("NumSamples" = as.integer(num.samples),
-               "InputDir" = tmp.dir,
-               "DatasetId" = as.integer(fold),
-               "Gaps" = as.integer(gaps),
-               "Burn" = as.integer(burn),
-               "SaveFileFlag" = as.integer(save.file.flag),
-               "OutWholeFlag" = as.integer(out.whole.flag),
-               "NumTraits" = as.integer(num.cols),
-               "NumFeats" = as.integer(num.latent.feats),
-               "NumHierarchyLevel" = as.integer(num.hierarchy.levels-1),
-               "PredictLevel" = as.integer(prediction.level),
-               "UsedNumHierarchyLevel" = as.integer(used.num.hierarchy.levels),
-               "Verbose" = as.integer(verbose),
-               "Env" = tmp.env
+  args <- list(
+    "NumSamples" = as.integer(num.samples),
+    "InputDir" = tmp.dir,
+    "DatasetId" = as.integer(fold),
+    "Gaps" = as.integer(gaps),
+    "Burn" = as.integer(burn),
+    "SaveFileFlag" = as.integer(save.file.flag),
+    "OutWholeFlag" = as.integer(out.whole.flag),
+    "NumTraits" = as.integer(num.cols),
+    "NumFeats" = as.integer(num.latent.feats),
+    "NumHierarchyLevel" = as.integer(num.hierarchy.levels - 1),
+    "PredictLevel" = as.integer(prediction.level),
+    "UsedNumHierarchyLevel" = as.integer(used.num.hierarchy.levels),
+    "Verbose" = as.integer(verbose),
+    "Env" = tmp.env
   )
-  
-  out <- .Call("DemoHPMF", args, mean.gap.filled.output.path, std.gap.filled.output.path, num.nodes.per.level)
-  
+
+  out <- .Call(
+    "DemoHPMF",
+    args,
+    mean.gap.filled.output.path,
+    std.gap.filled.output.path,
+    num.nodes.per.level,
+    package = "BHPMF"
+  )
+
   # write the gap filled data into the same format as X
-  gap.filled.dat = as.matrix(read.table(mean.gap.filled.output.path, sep="\t"))
-  gap.filled.dat = gap.filled.dat[,1:ncol(X)]
+  gap.filled.dat = as.matrix(read.table(
+    mean.gap.filled.output.path,
+    sep = "\t"
+  ))
+  gap.filled.dat = gap.filled.dat[, 1:ncol(X)]
   colnames(gap.filled.dat) = colnames(X)
-  write.table(gap.filled.dat, file = mean.gap.filled.output.path, sep="\t", col.names = T, row.names = F)
-  
+  write.table(
+    gap.filled.dat,
+    file = mean.gap.filled.output.path,
+    sep = "\t",
+    col.names = T,
+    row.names = F
+  )
+
   # write the std data into the same format as X
-  std.filled.dat = as.matrix(read.table(std.gap.filled.output.path, sep="\t"))
-  std.filled.dat = std.filled.dat[,1:ncol(X)]
+  std.filled.dat = as.matrix(read.table(std.gap.filled.output.path, sep = "\t"))
+  std.filled.dat = std.filled.dat[, 1:ncol(X)]
   colnames(std.filled.dat) = colnames(X)
-  write.table(std.filled.dat, file = std.gap.filled.output.path, sep="\t", col.names = T, row.names = F)
-  
+  write.table(
+    std.filled.dat,
+    file = std.gap.filled.output.path,
+    sep = "\t",
+    col.names = T,
+    row.names = F
+  )
+
   # draw the std vs RMSE plot
   if (rmse.plot.test.data) {
-    file.name <- paste(tmp.dir, "/fold1/Ytest", prediction.level, ".txt", sep = "")
+    file.name <- paste(
+      tmp.dir,
+      "/fold1/Ytest",
+      prediction.level,
+      ".txt",
+      sep = ""
+    )
     test.data <- as.matrix(read.table(file.name))
-    row.idx <- test.data[,1]
-    col.idx <- test.data[,2]
+    row.idx <- test.data[, 1]
+    col.idx <- test.data[, 2]
     nrows <- nrow(gap.filled.dat)
     test.idx <- (col.idx - 1) * nrows + row.idx
-    
+
     test.mean <- gap.filled.dat[test.idx]
     test.res <- test.mean - test.data[, 3]
-    test.rmse <- sqrt(mean(test.res^2));
+    test.rmse <- sqrt(mean(test.res^2))
     cat("RMSE for the test data: ", test.rmse)
-    
+
     test.std <- std.filled.dat[test.idx]
     PlotRmseVsStd(test.res, test.std)
   }
@@ -185,3 +250,4 @@ GapFilling <- function(X, hierarchy.info, prediction.level,
     return(out.tuning)
   }
 }
+
