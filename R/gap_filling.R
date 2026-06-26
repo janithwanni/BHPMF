@@ -58,6 +58,7 @@ GapFilling <- function(
   #   If tuning is TRUE, returns a list of the tuned number of latent factors paramter
   #   for BHMPF along with minimum RMSE.
 
+  browser()
   num.nodes.per.level <- NULL
   num.hierarchy.levels <- ncol(hierarchy.info)
   num.cols <- ncol(X)
