@@ -137,7 +137,7 @@ TuneBhpmf <- function(
         "",
         "",
         num.nodes.per.level,
-        package = "BHPMF"
+        PACKAGE = "BHPMF"
       )
       cat(out$RMSE)
       cat("\n")
@@ -157,4 +157,3 @@ TuneBhpmf <- function(
   )
   return(result)
 }
-

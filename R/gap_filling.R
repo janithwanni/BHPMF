@@ -193,7 +193,7 @@ GapFilling <- function(
     mean.gap.filled.output.path,
     std.gap.filled.output.path,
     num.nodes.per.level,
-    package = "BHPMF"
+    PACKAGE = "BHPMF"
   )
 
   # write the gap filled data into the same format as X
@@ -250,4 +250,3 @@ GapFilling <- function(
     return(out.tuning)
   }
 }
-

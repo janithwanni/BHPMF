@@ -181,7 +181,7 @@ CalculateCvRmse <- function(
       "",
       "",
       num.nodes.per.level,
-      package = "BHPMF"
+      PACKAGE = "BHMPF"
     )
 
     if (!save.file.flag) {
@@ -208,4 +208,3 @@ CalculateCvRmse <- function(
   }
   return(result)
 }
-
