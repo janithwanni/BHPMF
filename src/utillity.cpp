@@ -42,7 +42,7 @@ void PrintArr(double *myArr, int nRow){
 void PrintArr(int *myArr, int nRow){
   
   for (int ii = 0; ii < nRow; ii++) {
-    Rprintf("%5.3f ", myArr[ii]);
+    Rprintf("%5d ", myArr[ii]);
     //cout << myArr[ii] << " ";
   }
   Rprintf("\n");
@@ -94,7 +94,7 @@ void printMat(int **myMat, int nRow, int nCol){
   
   for (int ii = 0; ii < nRow; ii++) {
     for (int jj = 0; jj < nCol; jj++) {
-      Rprintf("%5.3f ", myMat[ii][jj]);
+      Rprintf("%5d ", myMat[ii][jj]);
       //cout << myMat[ii][jj] << " ";
     }
     Rprintf("\n");

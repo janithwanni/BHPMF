@@ -48,6 +48,7 @@ int XDemo(int numSamples, double *allRMSE, double *allRMSE2, int fold_id,
     int numPlants;
     GetRNGstate();
     
+    Rprintf("Creating new HPMF object \n");
     HPMF *obj = new HPMF(num_columns, num_latent_features,numNodesPerLevel,
                          predict_level, num_hierarchy_level, used_num_hierarchy_level,
                          gaps, burn, numSamples, fold_id, input_dir, saveFlag, outWholeFlag,
@@ -61,7 +62,7 @@ int XDemo(int numSamples, double *allRMSE, double *allRMSE2, int fold_id,
 extern "C" {
     SEXP DemoHPMF(SEXP args, SEXP mean_file_pathSexp, SEXP std_file_pathSexp,
                   SEXP numNodesPerLevelR) {
-        
+        Rprintf("Starting DemoHPMF \n");
         int numSamples = INTEGER(getListElement(args, "NumSamples"))[0];
         int fold_id = INTEGER(getListElement(args, "DatasetId"))[0];
         
@@ -71,6 +72,7 @@ extern "C" {
         double rmse;
         double *allRMSE = (double *) R_alloc(numSamples, sizeof(double));
         double *allRMSE2 = (double *) R_alloc(numSamples, sizeof(double));
+        Rprintf("Running XDemo \n");
         int numPlants = XDemo(numSamples, allRMSE, allRMSE2, fold_id, rmse, args,
                               mean_file_path, std_file_path, numNodesPerLevelR);
         
@@ -82,6 +84,7 @@ extern "C" {
         
         double *allRMSE_r  =  (double *) R_alloc(numSamples, sizeof(double));
         allRMSE_r = NUMERIC_POINTER(all_rmse_r);
+        Rprintf("Running across all samples \n");
         for(int ii = 0; ii < numSamples; ii++) {
             allRMSE_r[ii] = allRMSE[ii];
         }
@@ -91,6 +94,7 @@ extern "C" {
         
         double *allRMSE_r2  =  (double *) R_alloc(numSamples, sizeof(double));
         allRMSE_r2 = NUMERIC_POINTER(all_rmse_r2);
+        Rprintf("Running across all samples again \n");
         for(int ii = 0; ii < numSamples; ii++) {
             allRMSE_r2[ii] = allRMSE2[ii];
         }

@@ -1,38 +1,54 @@
-generatePermutation <- function (noTraits, traitIds, numFolds){
-    
-    numObs = length(noTraits);
-    permutMatV = matrix(numeric(0), nrow = numObs, ncol = numFolds);
-    permutMatTest = matrix(numeric(0), nrow = numObs, ncol = numFolds);
-    
-    #generate all test, and validation
-    for (id in 1 : numObs) {
-        permt <- c()
-        permv <- c()
-        
-        while (length(permt) < numFolds) {
-            traitId = traitIds[[id]];
-            len = length(traitId);
-            if(len == 1) {
-                permt = rep(traitId, numFolds);
-                permv = rep(traitId, numFolds);
-                break
-            }	else {
-                ranPermT = sample(traitId, len, replace=FALSE);
-                ranPermV = c(ranPermT[2: len], ranPermT[1]);
-                
-                permt = c(permt, ranPermT);
-                permv = c(permv, ranPermV );
-            }
-            
-        }
-        
-       	permutMatTest[id,] = permt[1:numFolds];
-        permutMatV[id,] = permv[1:numFolds];
+generatePermutation <- function(noTraits, traitIds, numFolds) {
+  if (is.na(numFolds) || numFolds <= 0) {
+    stop("numFolds must be a positive integer.")
+  }
+
+  numObs <- length(noTraits)
+  permutMatTest <- matrix(0, nrow = numObs, ncol = numFolds)
+  permutMatV <- matrix(0, nrow = numObs, ncol = numFolds)
+
+  for (id in seq_len(numObs)) {
+    traitId <- traitIds[[id]]
+    len <- length(traitId)
+
+    if (len == 0L) {
+      warning(sprintf(
+        "traitIds[[%d]] is empty (length 0); this would cause an infinite loop in the original implementation. Filling row %d with NA instead.",
+        id,
+        id
+      ))
+      permutMatTest[id, ] <- NA
+      permutMatV[id, ] <- NA
+      next
     }
-    return(list(permutMatTest, permutMatV));
-    
+
+    if (len == 1L) {
+      # Single trait: test and validation are just that trait repeated
+      permutMatTest[id, ] <- traitId
+      permutMatV[id, ] <- traitId
+      next
+    }
+
+    # Number of full sample() cycles needed to cover numFolds columns
+    nCycles <- ceiling(numFolds / len)
+
+    permt <- vector("numeric", nCycles * len)
+    permv <- vector("numeric", nCycles * len)
+
+    for (cycle in seq_len(nCycles)) {
+      idx <- ((cycle - 1L) * len + 1L):(cycle * len)
+
+      ranPermT <- sample(traitId, len, replace = FALSE)
+      ranPermV <- c(ranPermT[-1], ranPermT[1])
+
+      permt[idx] <- ranPermT
+      permv[idx] <- ranPermV
+    }
+
+    permutMatTest[id, ] <- permt[1:numFolds]
+    permutMatV[id, ] <- permv[1:numFolds]
+  }
+
+  return(list(permutMatTest, permutMatV))
 }
-
-
-
 
